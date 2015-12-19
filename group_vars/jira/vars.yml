@@ -1,0 +1,24 @@
+---
+# Variables listed here are applicable to jira host group
+
+jira_domain: jira.fly.md
+
+jira_proxy_name: "{{ jira_domain }}"
+jira_scheme: https
+jira_connector_port: 7890
+
+jira_user: "jira"
+jira_pass: "{{ db_pass }}"
+jira_hash_salt: "{{ db_pass_salt }}"
+
+jira_catalina: /srv/atlassian/jira
+jira_home: /srv/atlassian/data/jira
+
+
+app_name: jira
+app_domain: "{{ jira_domain }}"
+app_port: "{{ jira_connector_port }}"
+
+db_name: jira
+db_user: jira
+db_password: "{{ jira_pass }}"

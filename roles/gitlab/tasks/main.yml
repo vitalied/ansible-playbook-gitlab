@@ -1,0 +1,55 @@
+---
+# This playbook contains common plays that will be run on web nodes.
+
+# *****   Nginx   ***** #
+
+- name: web | Add Nginx Apt Key
+  apt_key: url="http://nginx.org/keys/nginx_signing.key" state=present
+  tags: web
+
+- name: web | Add Nginx Apt Sources List Deb
+  template: src=nginx.list.j2 dest=/etc/apt/sources.list.d/nginx.list
+  tags: web
+
+- name: web | Install Nginx
+  apt: name=nginx state=latest update_cache=yes
+  tags: web
+
+- name: web | SSL certificates directory
+  file: path=/etc/nginx/ssl state=directory mode=0600
+  tags: web
+
+- name: Create self-signed SSL certificates
+  command: openssl req -new -nodes -x509 -subj "/C=MD/ST=/L=/O=/CN=*.{{ main_domain }}" -days 3650 -keyout /etc/nginx/ssl/{{ main_domain }}.key -out /etc/nginx/ssl/{{ main_domain }}.crt -extensions v3_ca creates=/etc/nginx/ssl/{{ main_domain }}.crt
+  notify: Restart nginx
+  tags: web
+
+- name: web | Add Nginx configuration
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+  notify: Restart nginx
+  tags: web
+
+- name: web | Add Nginx apps sites configuration
+  template: src=app_domain.site.j2 dest=/etc/nginx/sites-available/{{ app_name }}.conf
+  notify: Restart nginx
+  tags: web
+
+- name: web | Enable (symlink) Nginx apps sites configuration
+  file: path=/etc/nginx/sites-enabled/{{ app_name }}.conf src=/etc/nginx/sites-available/{{ app_name }}.conf state=link
+  notify: Restart nginx
+  tags: web
+
+
+# *****   Java certs   ***** #
+
+- name: Check if self-signed SSL certificates are present in Java cacerts trust store
+  command: /bin/bash -l -c "keytool -list -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass {{ java_trust_store_pass }} | grep {{ main_domain }}"
+  register: java_trust_store_certs_list
+  ignore_errors: true
+  changed_when: false
+  tags: web
+
+- name: Copy self-signed SSL certificates to Java cacerts trust store
+  command: /bin/bash -l -c "keytool -import -alias {{ main_domain }} -file /etc/nginx/ssl/{{ main_domain }}.crt -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass {{ java_trust_store_pass }} -noprompt"
+  when: java_trust_store_certs_list|failed
+  tags: web

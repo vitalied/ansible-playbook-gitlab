@@ -1,0 +1,8 @@
+---
+# Handler to handle web notifications.
+
+# *****   Nginx   ***** #
+
+- name: Restart nginx
+  service: name=nginx state=restarted
+  tags: web

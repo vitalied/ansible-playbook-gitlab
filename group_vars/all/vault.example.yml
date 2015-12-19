@@ -1,0 +1,5 @@
+---
+# Variables listed here are encrypted
+
+vault_db_pass: db_pass
+vault_db_pass: db_pass_salt
